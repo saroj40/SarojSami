@@ -1,0 +1,73 @@
+:root {
+  --wine: #3a1420;
+  --wine-soft: #5a2434;
+  --blush: #f7e6e4;
+  --petal: #e9b8b8;
+  --rose: #b9776c;
+  --ivory: #fffaf7;
+  --display: var(--font-display), Georgia, serif;
+  --body: var(--font-body), system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--ivory); color: var(--wine); font-family: var(--body); font-weight: 300; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+h1, h2 { font-family: var(--display); font-weight: 300; }
+:focus-visible { outline: 2px solid var(--rose); outline-offset: 3px; }
+
+.hero { position: relative; min-height: 100svh; display: grid; place-items: center; text-align: center; color: var(--ivory); background: linear-gradient(160deg, var(--wine) 0%, var(--wine-soft) 60%, #7a3a46 100%); overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .38; filter: blur(2px); transform: scale(1.05); }
+.hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, rgba(58,20,32,.65) 100%); }
+.hero-inner { position: relative; z-index: 2; padding: 2rem 1.25rem; }
+.date { letter-spacing: .28em; font-size: .85rem; opacity: .85; margin-bottom: 1.5rem; }
+.hero h1 { display: flex; flex-direction: column; align-items: center; line-height: .95; font-size: clamp(3.6rem, 15vw, 10rem); font-style: italic; animation: rise 1.6s cubic-bezier(.2,.7,.2,1) both; }
+.hero h1 i { font-size: .3em; font-style: normal; color: var(--petal); margin: .35em 0; letter-spacing: .1em; }
+.tagline { margin-top: 2rem; font-family: var(--display); font-size: clamp(1.2rem, 3.2vw, 1.8rem); font-style: italic; color: var(--blush); }
+.scroll { display: inline-block; margin-top: 3rem; color: var(--ivory); text-decoration: none; font-size: .9rem; letter-spacing: .15em; padding: .8rem 2rem; border: 1px solid rgba(255,250,247,.5); border-radius: 999px; transition: background .3s, color .3s; }
+.scroll:hover { background: var(--ivory); color: var(--wine); }
+@keyframes rise { from { opacity: 0; transform: translateY(30px); letter-spacing: .08em; } to { opacity: 1; transform: none; letter-spacing: 0; } }
+
+.petals { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.petals span { position: absolute; top: -30px; background: radial-gradient(ellipse at 30% 30%, #f6cfcf, var(--rose)); border-radius: 80% 0 80% 0; opacity: .7; animation: fall linear infinite; }
+@keyframes fall { 0% { transform: translate(0,-40px) rotate(0); } 50% { transform: translate(40px, 55vh) rotate(180deg); } 100% { transform: translate(-30px, 115vh) rotate(360deg); opacity: .2; } }
+
+section { padding: clamp(4rem, 10vw, 7rem) 1.25rem; }
+section h2 { text-align: center; font-size: clamp(2rem, 5vw, 3.2rem); font-style: italic; margin-bottom: 2rem; }
+section h2::after { content: "♥"; display: block; font-style: normal; font-size: 1rem; color: var(--rose); margin-top: .6rem; }
+.story { max-width: 40rem; margin: 0 auto; text-align: center; font-family: var(--display); font-size: 1.35rem; line-height: 1.8; }
+.story p + p { margin-top: 1.2rem; }
+.count { background: var(--blush); text-align: center; }
+.countdown { display: flex; justify-content: center; gap: clamp(.8rem, 4vw, 2.5rem); }
+.countdown div { min-width: 4.2rem; }
+.countdown strong { display: block; font-family: var(--display); font-weight: 300; font-size: clamp(2.4rem, 8vw, 4.5rem); line-height: 1; }
+.countdown span { font-size: .8rem; color: var(--rose); letter-spacing: .1em; }
+.married { font-family: var(--display); font-style: italic; font-size: 2rem; }
+.small { margin-top: 1.5rem; color: var(--wine-soft); }
+
+.gallery { max-width: 76rem; margin: 0 auto; }
+.notice { text-align: center; padding: 1.2rem; background: var(--blush); border-radius: 12px; max-width: 32rem; margin: 0 auto 2rem; }
+.filters { display: flex; justify-content: center; gap: .6rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.filters button { font: inherit; padding: .45rem 1.3rem; border-radius: 999px; border: 1px solid var(--petal); background: transparent; color: var(--wine); cursor: pointer; transition: background .2s; }
+.filters button.on, .filters button:hover { background: var(--wine); color: var(--ivory); border-color: var(--wine); }
+.grid { columns: 3 18rem; column-gap: 1rem; }
+.tile { position: relative; display: block; width: 100%; margin: 0 0 1rem; padding: 0; border: 0; border-radius: 6px 28px 6px 28px; overflow: hidden; cursor: pointer; background: var(--blush); break-inside: avoid; }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s ease; }
+.tile:hover img { transform: scale(1.04); }
+.play { position: absolute; inset: 0; margin: auto; width: 4rem; height: 4rem; border-radius: 50%; background: rgba(255,250,247,.9); box-shadow: 0 6px 24px rgba(58,20,32,.35); }
+.play::before { content: ""; position: absolute; left: 1.55rem; top: 1.15rem; border-left: 1.1rem solid var(--wine); border-top: .85rem solid transparent; border-bottom: .85rem solid transparent; }
+
+.lightbox { position: fixed; inset: 0; z-index: 50; background: rgba(36,10,18,.94); display: grid; place-items: center; animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; } }
+.lb-stage { width: min(92vw, 1100px); height: min(82vh, 780px); display: grid; place-items: center; }
+.lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+.lb-stage iframe { width: 100%; height: 100%; border: 0; border-radius: 6px; background: #000; }
+.lb-close, .lb-nav { position: absolute; background: none; border: 0; color: var(--ivory); cursor: pointer; font-family: var(--display); line-height: 1; opacity: .8; }
+.lb-close:hover, .lb-nav:hover { opacity: 1; }
+.lb-close { top: 1rem; right: 1.4rem; font-size: 3rem; }
+.lb-nav { top: 50%; transform: translateY(-50%); font-size: 4rem; padding: 1rem; }
+.prev { left: .3rem; } .next { right: .3rem; }
+
+footer { text-align: center; padding: 4rem 1.25rem 5rem; background: var(--wine); color: var(--blush); }
+.sig { font-family: var(--display); font-style: italic; font-size: 2.2rem; margin-top: .8rem; color: var(--petal); }
+
+@media (max-width: 600px) { .lb-nav { font-size: 2.6rem; } .grid { columns: 2 9rem; column-gap: .6rem; } .tile { margin-bottom: .6rem; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
