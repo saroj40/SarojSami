@@ -6,29 +6,14 @@ import Countdown from "../components/Countdown";
 import Petals from "../components/Petals";
 
 /* ------------------------------------------------------------------ */
-/*  Google Drive helpers                                               */
+/*  Media helpers (the Drive listing itself runs on the server:        */
+/*  app/api/media/route.js -> lib/drive.js)                            */
 /* ------------------------------------------------------------------ */
-
-const API = "https://www.googleapis.com/drive/v3/files";
-const FOLDER_MIME = "application/vnd.google-apps.folder";
-const MAX_DEPTH = 3;
-const FIELDS = "nextPageToken, files(id,name,mimeType,createdTime,imageMediaMetadata(width,height),videoMediaMetadata(width,height,durationMillis))";
-
-// NOTE: NEXT_PUBLIC_* vars must be referenced literally so Next can inline them.
-const RAW_FOLDER = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID || "";
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "";
 
 const CACHE_KEY = "gallery-cache-v1";
 const PAGE_SIZE = 12; // tiles rendered per page
 const EAGER_COUNT = 4; // first tiles load immediately, the rest are lazy
 const MAX_RETRIES = 2;
-
-// Accepts a bare ID or a full Drive folder URL
-function parseFolderId(value = "") {
-  const v = String(value).trim();
-  const m = v.match(/folders\/([a-zA-Z0-9_-]+)/) || v.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  return m ? m[1] : v;
-}
 
 // Grid and lightbox placeholder share the same default width so the browser reuses the cached thumbnail.
 // If thumbnails are blank/slow, try: `https://lh3.googleusercontent.com/d/${id}=w${w}` (unofficial)
@@ -41,96 +26,23 @@ const withAttempt = (url, attempt) => (attempt ? `${url}${url.includes("?") ? "&
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// fetch with retries, useful on flaky / slow connections
-async function fetchJson(url, signal) {
-  let lastErr;
+// Ask our own API route for the list, with retries for flaky / slow connections
+async function getMedia(signal) {
+  let lastError = "Unknown error";
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(url, { signal });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        const err = new Error(body?.error?.message || `Google Drive API responded with ${res.status}`);
-        // don't retry client errors other than rate limiting
-        if (res.status >= 400 && res.status < 500 && res.status !== 429) throw Object.assign(err, { fatal: true });
-        throw err;
-      }
-      return await res.json();
+      const res = await fetch("/api/media", { signal });
+      const data = await res.json().catch(() => null);
+      if (res.ok) return { items: data?.items || [], error: null };
+      lastError = data?.error || `Gallery request failed (${res.status})`;
+      if (res.status >= 400 && res.status < 500) break; // not worth retrying
     } catch (err) {
-      if (err.name === "AbortError" || err.fatal) throw err;
-      lastErr = err;
-      if (attempt < MAX_RETRIES) await sleep(800 * (attempt + 1));
+      if (err.name === "AbortError") return { items: [], error: null, aborted: true };
+      lastError = err.message;
     }
+    if (attempt < MAX_RETRIES) await sleep(800 * (attempt + 1));
   }
-  throw lastErr;
-}
-
-async function listFolder(folderId, signal) {
-  const files = [];
-  let pageToken;
-  do {
-    const params = new URLSearchParams({
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: FIELDS,
-      pageSize: "1000",
-      orderBy: "createdTime,name",
-      supportsAllDrives: "true",
-      includeItemsFromAllDrives: "true",
-      key: API_KEY,
-    });
-    if (pageToken) params.set("pageToken", pageToken);
-
-    const data = await fetchJson(`${API}?${params}`, signal);
-    files.push(...(data.files || []));
-    pageToken = data.nextPageToken;
-  } while (pageToken);
-  return files;
-}
-
-async function collect(folderId, signal, depth = 0) {
-  const files = await listFolder(folderId, signal);
-  const media = [];
-  const subfolders = [];
-
-  for (const f of files) {
-    if (f.mimeType === FOLDER_MIME) {
-      if (depth < MAX_DEPTH) subfolders.push(f.id);
-      continue;
-    }
-    const isImage = f.mimeType?.startsWith("image/");
-    const isVideo = f.mimeType?.startsWith("video/");
-    if (!isImage && !isVideo) continue;
-
-    const meta = isImage ? f.imageMediaMetadata : f.videoMediaMetadata;
-    media.push({
-      id: f.id,
-      name: f.name,
-      type: isImage ? "image" : "video",
-      createdTime: f.createdTime,
-      width: meta?.width || null,
-      height: meta?.height || null,
-      durationMs: isVideo && meta?.durationMillis ? Number(meta.durationMillis) : null,
-    });
-  }
-
-  // Walk all subfolders at once instead of one by one
-  const nested = await Promise.all(subfolders.map((id) => collect(id, signal, depth + 1)));
-  return media.concat(...nested);
-}
-
-async function getMedia(signal) {
-  const folderId = parseFolderId(RAW_FOLDER);
-  if (!folderId) return { items: [], error: "NEXT_PUBLIC_DRIVE_FOLDER_ID is not set." };
-  if (!API_KEY) return { items: [], error: "NEXT_PUBLIC_GOOGLE_API_KEY is not set." };
-
-  try {
-    const items = await collect(folderId, signal);
-    items.sort((a, b) => new Date(a.createdTime) - new Date(b.createdTime) || a.name.localeCompare(b.name, undefined, { numeric: true }));
-    return { items, error: null };
-  } catch (err) {
-    if (err.name === "AbortError") return { items: [], error: null, aborted: true };
-    console.error("[drive] failed to load media:", err);
-    return { items: [], error: `Could not load the gallery: ${err.message}` };
-  }
+  return { items: [], error: `Could not load the gallery: ${lastError}` };
 }
 
 // Remember the last good list so repeat visits show instantly, even on a slow connection
@@ -533,7 +445,7 @@ export default function Home() {
       setLoading(false);
     }
 
-    // 2. Refresh from Drive in the background
+    // 2. Refresh from the server in the background
     getMedia(controller.signal).then((res) => {
       if (res.aborted) return;
       if (res.error) {
