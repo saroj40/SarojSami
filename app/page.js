@@ -503,12 +503,12 @@ export default function Home() {
           </a>
         </div>
       </section>
-
       <section id="story" className="story">
         <h2>How it began</h2>
-        {site.story.map((p, i) => (
+        {site.story}
+        {/* {site.story.map((p, i) => (
           <p key={i}>{p}</p>
-        ))}
+        ))} */}
       </section>
 
       {site.weddingDate && (
